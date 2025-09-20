@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "237980196078",
+    "project_id": "driveme-4a8b7",
+    "storage_bucket": "driveme-4a8b7.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:237980196078:android:f1c01f236df351a19e27ff",
+        "android_client_info": {
+          "package_name": "com.example.driveme"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbchF-tV56jWV-rl3TRfYRwKbY1zSfn94"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
