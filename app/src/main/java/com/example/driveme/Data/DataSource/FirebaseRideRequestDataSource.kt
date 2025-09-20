@@ -5,7 +5,7 @@ import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.tasks.await
 class FirebaseRideRequestDataSource {
     private val db = Firebase.firestore
-    private val collection = db.collection("ride_request")
+    private val collection = db.collection("ride_requests")
 
     suspend fun addRideRequest(ride: RideRequest) {
         collection.add(ride).await()
