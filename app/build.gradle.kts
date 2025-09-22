@@ -50,6 +50,26 @@ dependencies {
         implementation("com.google.firebase:firebase-auth")
     }
 
+    dependencies {
+        implementation("com.google.accompanist:accompanist-permissions:0.30.1")
+    }
+
+
+    implementation("androidx.navigation:navigation-compose:2.8.0")
+
+
+    dependencies {
+        // Google Maps Compose
+        implementation("com.google.maps.android:maps-compose:2.12.0")
+
+        // Google Play Services Maps
+        implementation("com.google.android.gms:play-services-maps:18.1.0")
+
+        // Google Play Services Location (za FusedLocationProviderClient)
+        implementation("com.google.android.gms:play-services-location:21.0.1")
+    }
+
+
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
