@@ -1,14 +1,24 @@
 package com.example.driveme.ui.Screens
 
 import android.Manifest
+import android.content.ContentValues
+import android.net.Uri
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil.compose.rememberAsyncImagePainter
 import com.example.driveme.DriveMeNavigationBar
 import com.example.driveme.DriveMeTopBar
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -29,6 +39,8 @@ fun RideScreen(
     onSubmit: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+
     val context = LocalContext.current
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
@@ -38,32 +50,35 @@ fun RideScreen(
     var endLocation by remember { mutableStateOf<LatLng?>(null) }
     var comment by remember { mutableStateOf("") }
 
-    //Ovde trazim permisiju
     LaunchedEffect(Unit) {
         if (!locationPermissionState.status.isGranted) {
             locationPermissionState.launchPermissionRequest()
         }
     }
 
-    //Postavljanje trenutne lokacije
     LaunchedEffect(locationPermissionState.status.isGranted) {
         if (locationPermissionState.status.isGranted) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-                location?.let {
-                    startLocation = LatLng(it.latitude, it.longitude)
-                }
+                location?.let { startLocation = LatLng(it.latitude, it.longitude) }
             }
         }
     }
 
     Scaffold(
         topBar = { DriveMeTopBar(title = "Home") },
-        bottomBar = { DriveMeNavigationBar(onRideViewNavClicked = onBack) }
+        bottomBar = {
+            Column {
+                RideButtons(onSubmit = onSubmit, onBack = onBack)
+                DriveMeNavigationBar(onRideViewNavClicked = onBack)
+            }
+        }
     ) { paddingValues ->
         Column(
             modifier = modifier
                 .fillMaxSize()
-                .padding(paddingValues),
+                .padding(paddingValues)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             if (locationPermissionState.status.isGranted && startLocation != null) {
@@ -88,7 +103,9 @@ fun RideScreen(
             }
 
             CommentTextField(comment = comment) { comment = it }
-            RideButtons(onSubmit = onSubmit, onBack = onBack)
+
+
+            ImagePicker { uri -> selectedImageUri = uri }
         }
     }
 }
@@ -151,15 +168,109 @@ fun RideButtons(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp),
+            .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Button(onClick = onSubmit, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))) {
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onSubmit,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+        ) {
             Text("Submit")
         }
-        Button(onClick = onBack, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))) {
+        Spacer(modifier = Modifier.width(16.dp))
+        Button(
+            modifier = Modifier.weight(1f),
+            onClick = onBack,
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3))
+        ) {
             Text("Back")
         }
     }
 }
+
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun ImagePicker(onImageSelected: (Uri) -> Unit) {
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    val context = LocalContext.current
+
+
+    val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
+
+    //Za galeriju
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedImageUri = it
+            onImageSelected(it)
+        }
+    }
+
+    // Za kameru
+    var cameraImageUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) {
+            cameraImageUri?.let {
+                selectedImageUri = it
+                onImageSelected(it)
+            }
+        }
+    }
+
+
+    fun createImageUri(): Uri? {
+        val contentValues = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "ride_${System.currentTimeMillis()}.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        }
+        return context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            Button(modifier = Modifier.weight(1f), onClick = {
+                galleryLauncher.launch("image/*")
+            }) {
+                Text("Izaberi iz galerije")
+            }
+
+
+            Button(modifier = Modifier.weight(1f), onClick = {
+                if (cameraPermissionState.status.isGranted) {
+                    cameraImageUri = createImageUri()
+                    cameraImageUri?.let { cameraLauncher.launch(it) }
+                } else {
+                    cameraPermissionState.launchPermissionRequest()
+                }
+            }) {
+                Text("Slikaj kamerom")
+            }
+        }
+
+
+        selectedImageUri?.let { uri ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Image(
+                painter = rememberAsyncImagePainter(uri),
+                contentDescription = "Izabrana slika",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentScale = ContentScale.Crop
+            )
+        }
+    }
+}
+

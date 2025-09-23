@@ -69,6 +69,11 @@ dependencies {
         implementation("com.google.android.gms:play-services-location:21.0.1")
     }
 
+    // Za ActivityResult API u Compose
+    implementation("androidx.activity:activity-compose:1.7.2")
+
+// Coil za prikaz slika iz Uri
+    implementation("io.coil-kt:coil-compose:2.4.0")
 
 
     implementation(libs.androidx.core.ktx)

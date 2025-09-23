@@ -9,5 +9,7 @@ data class RideRequest(
     val destinationLng: Double? = null,
     val timeCreated: Long = System.currentTimeMillis(),
     val status: String = "open",
-    val takenBy: List<String> = emptyList()
+    val takenBy: List<String> = emptyList(),
+    val imageUrl: String? = null,
+    val comment: String? = null
 )
