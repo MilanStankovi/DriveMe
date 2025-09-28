@@ -41,6 +41,9 @@ android {
 }
 
 dependencies {
+
+    implementation("com.google.firebase:firebase-storage")
+
     dependencies {
         // Import the BoM for the Firebase platform
         implementation(platform("com.google.firebase:firebase-bom:34.3.0"))
@@ -75,6 +78,11 @@ dependencies {
 // Coil za prikaz slika iz Uri
     implementation("io.coil-kt:coil-compose:2.4.0")
 
+
+
+    implementation("androidx.compose.foundation:foundation")
+    implementation("androidx.compose.foundation:foundation-layout")
+    implementation("androidx.compose.material:material")
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

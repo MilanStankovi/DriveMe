@@ -1,5 +1,4 @@
 package com.example.driveme.ui.Screens
-
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -11,13 +10,17 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.example.driveme.Data.Models.User
 import com.example.driveme.DriveMeNavigationBar
 import com.example.driveme.DriveMeTopBar
+import com.example.driveme.ui.ViewModel.AuthViewModel
 
 // Model za leaderboard
 data class Player(val name: String, val score: Int)
@@ -27,8 +30,11 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onRideViewNavClicked: () -> Unit = {},
     onButtonAddOrModRideClicked: () -> Unit = {},
-    onProfileNavClicked: () -> Unit = {}
+    onProfileNavClicked: () -> Unit = {},
+    user: User
 ) {
+
+
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
 
@@ -66,7 +72,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
-                    "Hello Name 👋",
+                    "Hello ${user.username} 👋",
                     style = MaterialTheme.typography.headlineMedium
                 )
             }
@@ -81,7 +87,7 @@ fun HomeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     RideButtons(onButtonAddOrModRideClicked)
-                    PointsSection()
+                    PointsSection(user)
                 }
             } else {
                 Row(
@@ -101,7 +107,7 @@ fun HomeScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        PointsSection()
+                        PointsSection(user)
                     }
                 }
             }
@@ -168,14 +174,14 @@ fun RideButtons(onButtonAddOrModRideClicked: () -> Unit) {
 }
 
 @Composable
-fun PointsSection() {
+fun PointsSection(user: User) {
     Text(
         text = "Points:",
         style = MaterialTheme.typography.titleLarge,
         color = Color.Green
     )
     Text(
-        text = "0",
+        text = "${user.points}",
         style = MaterialTheme.typography.displaySmall,
         color = Color.Green
     )
