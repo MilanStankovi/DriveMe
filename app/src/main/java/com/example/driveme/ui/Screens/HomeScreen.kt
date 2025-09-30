@@ -1,4 +1,5 @@
 package com.example.driveme.ui.Screens
+
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -9,9 +10,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,10 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.example.driveme.Data.Models.User
 import com.example.driveme.DriveMeNavigationBar
 import com.example.driveme.DriveMeTopBar
-import com.example.driveme.ui.ViewModel.AuthViewModel
-
-// Model za leaderboard
-data class Player(val name: String, val score: Int)
+import com.example.driveme.ui.ViewModel.UserViewModel
 
 @Composable
 fun HomeScreen(
@@ -31,25 +27,19 @@ fun HomeScreen(
     onRideViewNavClicked: () -> Unit = {},
     onButtonAddOrModRideClicked: () -> Unit = {},
     onProfileNavClicked: () -> Unit = {},
-    user: User
+    user: User,
+    userViewModel: UserViewModel = UserViewModel()
 ) {
-
-
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
 
-    val players = listOf(
-        Player("Marko", 120),
-        Player("Jovana", 95),
-        Player("Nikola", 85),
-        Player("Ana", 70),
-        Player("Stefan", 50),
-        Player("Ivan", 50),
-        Player("Sanja", 50),
-        Player("Tijana", 50),
-        Player("Katarina", 50),
-        Player("Dragan", 50)
-    ).sortedByDescending { it.score }
+    // Pretvaramo StateFlow u Compose state
+    val users by userViewModel.users.collectAsState()
+
+    // Učitavamo korisnike kada se ekran prvi put pojavi
+    LaunchedEffect(Unit) {
+        userViewModel.loadUsers()
+    }
 
     Scaffold(
         topBar = { DriveMeTopBar(title = "Home") },
@@ -79,7 +69,6 @@ fun HomeScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Dizajn za uzak i širok ekran
             if (screenWidth < 600) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -121,16 +110,29 @@ fun HomeScreen(
                 modifier = Modifier.padding(start = 8.dp)
             )
 
-            LazyColumn(
-                modifier = Modifier
-                    .padding(8.dp)
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .border(3.dp, Color(0xFF87CEFA), RoundedCornerShape(24.dp))
-                    .padding(8.dp)
-            ) {
-                itemsIndexed(players) { index, player ->
-                    LeaderboardItem(rank = index + 1, player = player)
+            if (users.isEmpty()) {
+                // Loading indikator ako nema korisnika
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .border(3.dp, Color(0xFF87CEFA), RoundedCornerShape(24.dp))
+                        .padding(8.dp)
+                ) {
+                    val sortedUsers = users.sortedByDescending { it.points }
+                    itemsIndexed(sortedUsers) { index, userItem ->
+                        LeaderboardUserItem(rank = index + 1, user = userItem)
+                    }
                 }
             }
         }
@@ -188,7 +190,7 @@ fun PointsSection(user: User) {
 }
 
 @Composable
-fun LeaderboardItem(rank: Int, player: Player) {
+fun LeaderboardUserItem(rank: Int, user: User) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -206,12 +208,12 @@ fun LeaderboardItem(rank: Int, player: Player) {
                 modifier = Modifier.width(32.dp)
             )
             Text(
-                text = player.name,
+                text = user.username,
                 style = MaterialTheme.typography.bodyLarge,
                 modifier = Modifier.weight(1f)
             )
             Text(
-                text = player.score.toString(),
+                text = user.points.toString(),
                 style = MaterialTheme.typography.bodyLarge
             )
         }

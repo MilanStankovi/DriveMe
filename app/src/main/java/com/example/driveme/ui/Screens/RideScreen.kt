@@ -19,6 +19,8 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
+import com.example.driveme.Data.Models.RideRequest
+import com.example.driveme.Data.Models.User
 import com.example.driveme.DriveMeNavigationBar
 import com.example.driveme.DriveMeTopBar
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -37,7 +39,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 fun RideScreen(
     modifier: Modifier = Modifier,
     onSubmit: () -> Unit = {},
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    user: User
 ) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -273,4 +276,5 @@ fun ImagePicker(onImageSelected: (Uri) -> Unit) {
         }
     }
 }
+
 

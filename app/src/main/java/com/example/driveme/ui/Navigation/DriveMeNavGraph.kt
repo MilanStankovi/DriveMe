@@ -87,11 +87,15 @@ fun DriveMeNavHost(
         }
 
         composable(DriveMeScreen.Ride.name) {
-            RideScreen(
-                modifier,
-                onBack = { navController.navigate(DriveMeScreen.Home.name) },
-                onSubmit = { navController.navigate(DriveMeScreen.Home.name) }
-            )
+            val currentUser by authViewModel.currentUser.collectAsState()
+            if(currentUser != null) {
+                RideScreen(
+                    modifier,
+                    onBack = { navController.navigate(DriveMeScreen.Home.name) },
+                    onSubmit = { navController.navigate(DriveMeScreen.Home.name) },
+                    user = currentUser!!
+                )
+            }
         }
 
         composable(DriveMeScreen.RideView.name) {
