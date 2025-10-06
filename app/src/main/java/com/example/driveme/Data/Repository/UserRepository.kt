@@ -17,4 +17,12 @@ class UserRepository(
         dataSource.updateUser(user)
     }
 
+    suspend fun updateUserLocation(uid: String, lat: Double, lng: Double) {
+        dataSource.updateUserLocation(uid, lat, lng)
+    }
+
+    suspend fun getUserById(uid: String): User? {
+        return dataSource.getUserById(uid)
+    }
+
 }

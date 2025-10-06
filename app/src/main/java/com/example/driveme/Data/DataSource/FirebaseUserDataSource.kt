@@ -20,5 +20,18 @@ class FirebaseUserDataSource {
 
     }
 
+    suspend fun updateUserLocation(uid: String, lat: Double, lng: Double) {
+        db.collection("users").document(uid).update(
+            mapOf(
+                "lat" to lat,
+                "lng" to lng
+            )
+        ).await()
+    }
 
+
+    suspend fun getUserById(uid: String): User? {
+        val doc = db.collection("users").document(uid).get().await()
+        return doc.toObject(User::class.java)
+    }
 }

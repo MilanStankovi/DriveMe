@@ -7,9 +7,9 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
@@ -24,14 +24,17 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.driveme.Data.Models.RideRequest
 import com.example.driveme.ui.ViewModel.RideRequestViewModel
+import com.example.driveme.ui.ViewModel.UserViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.maps.android.compose.*
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.*
 
@@ -40,17 +43,21 @@ import kotlin.math.*
 @Composable
 fun RideViewScreen(
     modifier: Modifier = Modifier,
-    viewModel: RideRequestViewModel = viewModel(),
+    rideViewModel: RideRequestViewModel = viewModel(),
+    userViewModel: UserViewModel = viewModel(),
     onHomeNavClicked: () -> Unit
 ) {
-    // 🔹 Učitavanje svih RideRequest objekata
-    LaunchedEffect(Unit) {
-        viewModel.loadRideRequests()
-    }
-
-    val rideRequests by viewModel.rides.collectAsState()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // 🔹 Učitavanje ride requestova i korisnika
+    LaunchedEffect(Unit) {
+        rideViewModel.loadRideRequests()
+        userViewModel.loadUsers()
+    }
+
+    val rideRequests by rideViewModel.rides.collectAsState()
+    val users by userViewModel.users.collectAsState()
 
     // 🔹 Lokacija korisnika
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
@@ -70,10 +77,34 @@ fun RideViewScreen(
         }
     }
 
+    // 🔹 Periodično ažuriranje i snimanje korisnikove lokacije
+    LaunchedEffect(currentLocation) {
+        if (locationPermission.status.isGranted) {
+            while (true) {
+                fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+                    if (location != null) {
+                        currentLocation = LatLng(location.latitude, location.longitude)
+
+                        // 🔹 Ažuriranje lokacije trenutnog korisnika u Firestore
+                        val loggedUser = users.firstOrNull()
+                        loggedUser?.let {
+                            scope.launch {
+                                userViewModel.updateUserLocation(
+                                    it.uid,
+                                    location.latitude,
+                                    location.longitude
+                                )
+                            }
+                        }
+                    }
+                }
+                delay(10_000) // svakih 10 sekundi
+            }
+        }
+    }
+
     // 🔹 Filteri
     var statusFilter by remember { mutableStateOf("") }
-    var fromTime by remember { mutableStateOf("") }
-    var toTime by remember { mutableStateOf("") }
     var radiusKm by remember { mutableStateOf("") }
     var selectedRide by remember { mutableStateOf<RideRequest?>(null) }
 
@@ -84,7 +115,7 @@ fun RideViewScreen(
         }
     }
 
-    // 🔹 Haversine formula za radius
+    // 🔹 Haversine formula za filtriranje po udaljenosti
     fun withinRadius(lat1: Double, lon1: Double, lat2: Double, lon2: Double, radiusKm: Double): Boolean {
         val R = 6371
         val dLat = Math.toRadians(lat2 - lat1)
@@ -96,15 +127,8 @@ fun RideViewScreen(
         return distance <= radiusKm
     }
 
-    // 🔹 Filtriranje
     val filteredRequests = rideRequests.filter { ride ->
         val matchesStatus = if (statusFilter.isBlank()) true else ride.status.equals(statusFilter, ignoreCase = true)
-        val matchesTime = try {
-            val from = if (fromTime.isBlank()) 0L else fromTime.toLong()
-            val to = if (toTime.isBlank()) Long.MAX_VALUE else toTime.toLong()
-            ride.timeCreated in from..to
-        } catch (_: Exception) { true }
-
         val matchesRadius = try {
             if (radiusKm.isNotBlank() && currentLocation != null) {
                 withinRadius(
@@ -117,14 +141,14 @@ fun RideViewScreen(
             } else true
         } catch (_: Exception) { true }
 
-        matchesStatus && matchesTime && matchesRadius
+        matchesStatus && matchesRadius
     }
 
-    // 🔹 Scaffold
+    // 🔹 UI
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Ride Requests Map") },
+                title = { Text("Ride Requests & Users Map") },
                 navigationIcon = {
                     IconButton(onClick = onHomeNavClicked) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -133,23 +157,25 @@ fun RideViewScreen(
             )
         }
     ) { padding ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
         ) {
-
-            // 🔹 Google Mapa
+            // 🔹 Google mapa
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(isMyLocationEnabled = locationPermission.status.isGranted)
             ) {
+                // 🔹 Ride request markeri (crveni)
                 filteredRequests.forEach { ride ->
                     val pos = LatLng(ride.pickupLat, ride.pickupLng)
                     Marker(
                         state = MarkerState(position = pos),
                         title = "Ride Request (${ride.status})",
                         snippet = "Tap for details",
+                        icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED),
                         onClick = {
                             selectedRide = ride
                             scope.launch {
@@ -161,9 +187,22 @@ fun RideViewScreen(
                         }
                     )
                 }
+
+                // 🔹 Korisnici (plavi markeri)
+                val loggedUser = users.firstOrNull()
+                users.filter { it.uid != loggedUser?.uid }.forEach { user ->
+                    if (user.lat != null && user.lng != null) {
+                        Marker(
+                            state = MarkerState(position = LatLng(user.lat!!, user.lng!!)),
+                            title = "User: ${user.fullName.ifBlank { user.username }}",
+                            snippet = "Points: ${user.points}",
+                            icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+                        )
+                    }
+                }
             }
 
-            // 🔹 Filter panel (transparent preko mape)
+            // 🔹 Filter panel
             Column(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -180,20 +219,6 @@ fun RideViewScreen(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
-                    value = fromTime,
-                    onValueChange = { fromTime = it },
-                    label = { Text("From (timestamp)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = toTime,
-                    onValueChange = { toTime = it },
-                    label = { Text("To (timestamp)") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
                     value = radiusKm,
                     onValueChange = { radiusKm = it },
                     label = { Text("Radius (km)") },
@@ -202,7 +227,7 @@ fun RideViewScreen(
                 )
             }
 
-            // 🔹 Info kartica za marker
+            // 🔹 Info kartica za ride
             selectedRide?.let { ride ->
                 Card(
                     modifier = Modifier
@@ -214,7 +239,6 @@ fun RideViewScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Status: ${ride.status}", style = MaterialTheme.typography.titleMedium)
-                        Text("Created: ${ride.timeCreated}")
                         Text("Destination: ${ride.destinationLat}, ${ride.destinationLng}")
                         ride.comment?.let { Text("Comment: $it") }
                         ride.imageUrl?.let {

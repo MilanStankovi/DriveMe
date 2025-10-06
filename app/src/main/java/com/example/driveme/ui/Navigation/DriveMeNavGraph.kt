@@ -1,5 +1,6 @@
 package com.example.driveme.ui.Navigation
 
+import AuthDataSource
 import com.example.driveme.ui.Screens.AuthScreens.LoginScreen
 import com.example.driveme.ui.Screens.AuthScreens.RegisterScreen
 
@@ -13,7 +14,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.driveme.Data.DataSource.AuthDataSource
 import com.example.driveme.Data.Repository.AuthRepository
 import com.example.driveme.ui.Screens.*
 import com.example.driveme.ui.ViewModel.AuthViewModel

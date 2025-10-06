@@ -37,4 +37,26 @@ class UserViewModel(
             }
         }
     }
+
+    fun updateUserLocation(uid: String, lat: Double, lng: Double) {
+        viewModelScope.launch {
+            try {
+                repository.updateUserLocation(uid, lat, lng)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun getUserById(uid: String, onResult: (User?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val user = repository.getUserById(uid)
+                onResult(user)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onResult(null)
+            }
+        }
+    }
 }

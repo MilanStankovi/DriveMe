@@ -1,11 +1,11 @@
-package com.example.driveme.Data.DataSource
-
 import android.content.Context
+import android.graphics.Bitmap
 import android.net.Uri
 import com.example.driveme.Data.Models.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.FileOutputStream
 
@@ -20,6 +20,7 @@ class AuthDataSource(private val context: Context) {
         password: String,
         user: User,
         imageUri: Uri?,
+        imageBitmap: Bitmap?,
         onResult: (Boolean, String?) -> Unit
     ) {
         auth.createUserWithEmailAndPassword(email, password)
@@ -30,32 +31,52 @@ class AuthDataSource(private val context: Context) {
                     return@addOnSuccessListener
                 }
 
-                if (imageUri != null) {
-                    val ref = storage.reference.child("profile_images/$uid.jpg")
-                    ref.putFile(imageUri) // ✅ direktno koristi picked URI
-                        .addOnSuccessListener {
-                            ref.downloadUrl
-                                .addOnSuccessListener { uri ->
+                val ref = storage.reference.child("profile_images/$uid.jpg")
+
+                when {
+                    imageBitmap != null -> {
+                        // 📸 Ako korisnik uslika sliku
+                        val baos = ByteArrayOutputStream()
+                        imageBitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos)
+                        val data = baos.toByteArray()
+
+                        ref.putBytes(data)
+                            .addOnSuccessListener {
+                                ref.downloadUrl.addOnSuccessListener { uri ->
                                     val newUser = user.copy(uid = uid, photoUrl = uri.toString())
                                     saveUserToFirestore(newUser, onResult)
                                 }
-                                .addOnFailureListener { error ->
-                                    onResult(false, "Failed to get image URL: ${error.message}")
+                            }
+                            .addOnFailureListener { error ->
+                                onResult(false, "Image upload failed: ${error.message}")
+                            }
+                    }
+
+                    imageUri != null -> {
+                        // 📁 Ako korisnik izabere sliku iz galerije
+                        ref.putFile(imageUri)
+                            .addOnSuccessListener {
+                                ref.downloadUrl.addOnSuccessListener { uri ->
+                                    val newUser = user.copy(uid = uid, photoUrl = uri.toString())
+                                    saveUserToFirestore(newUser, onResult)
                                 }
-                        }
-                        .addOnFailureListener { error ->
-                            onResult(false, "Image upload failed: ${error.message}")
-                        }
-                } else {
-                    val newUser = user.copy(uid = uid)
-                    saveUserToFirestore(newUser, onResult)
+                            }
+                            .addOnFailureListener { error ->
+                                onResult(false, "Image upload failed: ${error.message}")
+                            }
+                    }
+
+                    else -> {
+                        // 🧍 Ako korisnik ne doda sliku
+                        val newUser = user.copy(uid = uid)
+                        saveUserToFirestore(newUser, onResult)
+                    }
                 }
             }
             .addOnFailureListener { error ->
                 onResult(false, "Registration failed: ${error.message}")
             }
     }
-
 
     private fun saveUserToFirestore(user: User, onResult: (Boolean, String?) -> Unit) {
         firestore.collection("users").document(user.uid)
@@ -85,21 +106,5 @@ class AuthDataSource(private val context: Context) {
             .addOnFailureListener {
                 onResult(false, it.message, null)
             }
-    }
-
-    // Helper za konverziju Uri -> File
-    private fun uriToFile(context: Context, uri: Uri): File? {
-        return try {
-            val inputStream = context.contentResolver.openInputStream(uri)
-            val tempFile = File.createTempFile("profile", ".jpg", context.cacheDir)
-            val outputStream = FileOutputStream(tempFile)
-            inputStream?.copyTo(outputStream)
-            inputStream?.close()
-            outputStream.close()
-            tempFile
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
     }
 }

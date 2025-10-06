@@ -1,5 +1,6 @@
 package com.example.driveme.ui.ViewModel
 
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import com.example.driveme.Data.Models.User
@@ -34,10 +35,11 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
-    fun register(email: String, password: String, user: User, imageUri: Uri?) {
+    fun register(email: String, password: String, user: User, imageUri: Uri?, imageBitmap: Bitmap?) {
         _authState.value = AuthState.Loading
-        repository.register(email, password, user, imageUri) { success, error ->
+        repository.register(email, password, user, imageUri, imageBitmap) { success, error ->
             _authState.value = if (success) AuthState.Success else AuthState.Error(error ?: "Unknown error")
         }
     }
+
 }

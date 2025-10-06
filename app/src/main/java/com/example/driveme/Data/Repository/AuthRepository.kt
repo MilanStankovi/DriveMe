@@ -1,7 +1,9 @@
 package com.example.driveme.Data.Repository
 
+
+import AuthDataSource
+import android.graphics.Bitmap
 import android.net.Uri
-import com.example.driveme.Data.DataSource.AuthDataSource
 import com.example.driveme.Data.Models.User
 
 class AuthRepository(private val dataSource: AuthDataSource) {
@@ -10,8 +12,16 @@ class AuthRepository(private val dataSource: AuthDataSource) {
         dataSource.login(email, password, onResult)
     }
 
-    fun register(email: String, password: String, user: User, imageUri: Uri?, onResult: (Boolean, String?) -> Unit) {
-        dataSource.register(email, password, user, imageUri, onResult)
+    fun register(
+        email: String,
+        password: String,
+        user: User,
+        imageUri: Uri?,
+        imageBitmap: Bitmap?,
+        onResult: (Boolean, String?) -> Unit
+    ) {
+        dataSource.register(email, password, user, imageUri, imageBitmap, onResult)
     }
+
 
 }

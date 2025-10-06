@@ -1,5 +1,7 @@
 package com.example.driveme.ui.Screens.AuthScreens
 
+import android.Manifest
+import android.graphics.Bitmap
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -11,13 +13,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
 import com.example.driveme.Data.Models.User
 import com.example.driveme.ui.ViewModel.AuthState
 import com.example.driveme.ui.ViewModel.AuthViewModel
-import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterScreen(
@@ -31,15 +33,42 @@ fun RegisterScreen(
     var username by remember { mutableStateOf("") }
     var fullName by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+
+    // Može biti samo jedna slika — iz galerije ili kamerom
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var selectedImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     val authState by viewModel.authState.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
-    val coroutineScope = rememberCoroutineScope()
 
+    // 📁 Launcher za izbor slike iz galerije
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? -> uri?.let { selectedImageUri = it } }
+    ) { uri: Uri? ->
+        uri?.let {
+            selectedImageUri = it
+            selectedImageBitmap = null // reset ako je ranije slikano
+        }
+    }
+
+    // 📸 Launcher za kameru
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        bitmap?.let {
+            selectedImageBitmap = it
+            selectedImageUri = null // reset ako je ranije izabrano iz galerije
+        }
+    }
+
+    // 🪪 Launcher za runtime CAMERA permisiju
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        }
+    }
 
     Box(
         modifier = modifier
@@ -55,7 +84,10 @@ fun RegisterScreen(
         ) {
             if (authState is AuthState.Loading) CircularProgressIndicator()
             if (authState is AuthState.Error) {
-                Text((authState as AuthState.Error).message, color = MaterialTheme.colorScheme.error)
+                Text(
+                    (authState as AuthState.Error).message,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -93,19 +125,39 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Button(onClick = { imagePickerLauncher.launch("image/*") }) {
-                Text("Select Profile Image")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { imagePickerLauncher.launch("image/*") }) {
+                    Text("Select from Gallery")
+                }
+                Button(onClick = {
+                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                }) {
+                    Text("Take Photo")
+                }
             }
 
-            selectedImageUri?.let { uri ->
-                Image(
-                    painter = rememberAsyncImagePainter(uri),
-                    contentDescription = "Profile Image",
-                    modifier = Modifier
-                        .size(120.dp)
-                        .padding(8.dp),
-                    contentScale = ContentScale.Crop
-                )
+            // 🖼️ Prikaz slike ako postoji
+            when {
+                selectedImageUri != null -> {
+                    Image(
+                        painter = rememberAsyncImagePainter(selectedImageUri),
+                        contentDescription = "Selected Image",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .padding(8.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+                selectedImageBitmap != null -> {
+                    Image(
+                        bitmap = selectedImageBitmap!!.asImageBitmap(),
+                        contentDescription = "Captured Image",
+                        modifier = Modifier
+                            .size(120.dp)
+                            .padding(8.dp),
+                        contentScale = ContentScale.Crop
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -113,14 +165,16 @@ fun RegisterScreen(
             Button(
                 onClick = {
                     val user = User(
-                        uid = "", // Firebase će popuniti
+                        uid = "",
                         username = username,
                         fullName = fullName,
                         phone = phone,
                         email = email,
                         photoUrl = null
                     )
-                    viewModel.register(email, password, user, selectedImageUri)
+
+                    // Prosleđuje se i URI i Bitmap
+                    viewModel.register(email, password, user, selectedImageUri, selectedImageBitmap)
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -135,7 +189,7 @@ fun RegisterScreen(
         }
     }
 
-    // Pozivanje onAuthSuccess samo kada je registracija završena
+    // ✅ Kada je registracija uspešna
     LaunchedEffect(authState, currentUser) {
         if (authState is AuthState.Success && currentUser != null) {
             onAuthSuccess(currentUser!!)
