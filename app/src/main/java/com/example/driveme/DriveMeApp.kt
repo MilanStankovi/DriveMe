@@ -23,10 +23,12 @@ import com.example.driveme.Data.Models.RideRequest
 import com.example.driveme.ui.Navigation.DriveMeNavHost
 import com.example.driveme.ui.Screens.HomeScreen
 import com.example.driveme.ui.ViewModel.RideRequestViewModel
+import com.example.driveme.ui.ViewModel.UserViewModel
 
 @Composable
-fun DriveMeApp(modifier: PaddingValues, viewModel: RideRequestViewModel,navController: NavHostController = rememberNavController()){
-    DriveMeNavHost(navController)
+fun DriveMeApp(modifier: PaddingValues, viewModel: RideRequestViewModel,navController: NavHostController = rememberNavController(),
+               userViewModel: UserViewModel){
+    DriveMeNavHost(navController,viewModel,userViewModel)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,12 +54,11 @@ data class BottomNavItem(val route: String, val icon: ImageVector, val label: St
 @Composable
 fun DriveMeNavigationBar(modifier: Modifier = Modifier,
                                  onRideViewNavClicked: () -> Unit = {},
-                                 onHomeNavClicked: () -> Unit = {},
-                                 onProfileNavClicked: () -> Unit = {}){
+                                 onHomeNavClicked: () -> Unit = {}
+                                 ){
     val items = listOf(
         BottomNavItem("Home", Icons.Default.Home, "Home"),
         BottomNavItem("RideView", Icons.Default.LocationOn, "Ride"),
-        BottomNavItem("Profile", Icons.Default.AccountCircle, "Profile"),
     )
     //val currentBackStackEntry by navController.currentBackStackEntryAsState()
     //val currentRoute = currentBackStackEntry?.destination?.route
@@ -73,9 +74,7 @@ fun DriveMeNavigationBar(modifier: Modifier = Modifier,
                     if(item.route == "Home"){
                         onHomeNavClicked()
                     }
-                    if(item.route == "Prfile"){
-                        onProfileNavClicked()
-                    }
+
                 },
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) }

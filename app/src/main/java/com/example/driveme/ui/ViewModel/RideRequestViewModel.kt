@@ -10,10 +10,10 @@ class RideRequestViewModel(
     private val repository: RideRequestRepository = RideRequestRepository()
 ): ViewModel(){
     private val _rides = MutableStateFlow<List<RideRequest>>(emptyList())
-    val tasks: StateFlow<List<RideRequest>> = _rides
+    val rides: StateFlow<List<RideRequest>> = _rides
 
     private val _ride = MutableStateFlow<RideRequest?>(null)
-    val task: StateFlow<RideRequest?> = _ride
+    val ride: StateFlow<RideRequest?> = _ride
 
     fun loadRideRequests() {
         viewModelScope.launch {

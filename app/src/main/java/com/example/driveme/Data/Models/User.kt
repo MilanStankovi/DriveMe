@@ -7,5 +7,5 @@ data class User(
     val phone: String = "",
     val email: String = "",
     val photoUrl: String? = null,
-    val points: Int = 0
+    var points: Int = 0
 )

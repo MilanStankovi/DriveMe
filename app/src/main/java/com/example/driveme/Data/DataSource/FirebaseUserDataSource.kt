@@ -15,4 +15,10 @@ class FirebaseUserDataSource {
         return snapshot.mapNotNull { it.toObject(User::class.java) }
     }
 
+    suspend fun updateUser(user: User) {
+        db.collection("users").document(user.uid).update("points", user.points)
+
+    }
+
+
 }

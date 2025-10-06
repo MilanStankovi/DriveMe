@@ -23,6 +23,8 @@ import com.example.driveme.Data.Models.RideRequest
 import com.example.driveme.Data.Models.User
 import com.example.driveme.DriveMeNavigationBar
 import com.example.driveme.DriveMeTopBar
+import com.example.driveme.ui.ViewModel.RideRequestViewModel
+import com.example.driveme.ui.ViewModel.UserViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
@@ -40,7 +42,9 @@ fun RideScreen(
     modifier: Modifier = Modifier,
     onSubmit: () -> Unit = {},
     onBack: () -> Unit = {},
-    user: User
+    user: User,
+    viewModel : RideRequestViewModel,
+    userViewModel: UserViewModel
 ) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
@@ -71,7 +75,21 @@ fun RideScreen(
         topBar = { DriveMeTopBar(title = "Home") },
         bottomBar = {
             Column {
-                RideButtons(onSubmit = onSubmit, onBack = onBack)
+                RideButtons(onSubmit = {submit(
+                    userId = user.uid,
+                    pickupLat = startLocation!!.latitude,
+                    pickupLng = startLocation!!.longitude,
+                    destinationLat = endLocation!!.latitude,
+                    destinationLng = endLocation!!.longitude,
+                    takenBy = user.username,
+                    imageUrl = selectedImageUri?.toString(),
+                    comment = comment,
+                    viewModel = viewModel,
+                    userViewModel = userViewModel,
+                    user = user
+                    )
+                    onSubmit()},
+                    onBack = onBack)
                 DriveMeNavigationBar(onRideViewNavClicked = onBack)
             }
         }
@@ -276,5 +294,30 @@ fun ImagePicker(onImageSelected: (Uri) -> Unit) {
         }
     }
 }
-
+fun submit(
+    userId: String,
+    pickupLat: Double,
+    pickupLng: Double,
+    destinationLat: Double?,
+    destinationLng: Double?,
+    takenBy: String,
+    imageUrl: String?,
+    comment: String?,
+    viewModel : RideRequestViewModel,
+    userViewModel: UserViewModel,
+    user: User
+){
+    val ride = RideRequest(
+        userId = userId,
+        pickupLat = pickupLat,
+        pickupLng = pickupLng,
+        destinationLng = destinationLng,
+        destinationLat = destinationLat,
+        takenBy = takenBy,
+        imageUrl = imageUrl,
+        comment = comment
+    )
+    viewModel.addRideRequest(ride)
+    userViewModel.createRidePoints(user)
+}
 

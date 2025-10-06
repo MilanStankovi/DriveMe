@@ -17,12 +17,13 @@ import com.example.driveme.Data.DataSource.AuthDataSource
 import com.example.driveme.Data.Repository.AuthRepository
 import com.example.driveme.ui.Screens.*
 import com.example.driveme.ui.ViewModel.AuthViewModel
+import com.example.driveme.ui.ViewModel.RideRequestViewModel
+import com.example.driveme.ui.ViewModel.UserViewModel
 
 enum class DriveMeScreen {
     Home,
     Ride,
     RideView,
-    Profile,
     Login,
     Register
 }
@@ -30,6 +31,8 @@ enum class DriveMeScreen {
 @Composable
 fun DriveMeNavHost(
     navController: NavHostController = rememberNavController(),
+    viewModel: RideRequestViewModel,
+    userViewModel: UserViewModel,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -93,7 +96,9 @@ fun DriveMeNavHost(
                     modifier,
                     onBack = { navController.navigate(DriveMeScreen.Home.name) },
                     onSubmit = { navController.navigate(DriveMeScreen.Home.name) },
-                    user = currentUser!!
+                    user = currentUser!!,
+                    viewModel = viewModel,
+                    userViewModel = userViewModel
                 )
             }
         }
@@ -103,10 +108,6 @@ fun DriveMeNavHost(
                 modifier,
                 onHomeNavClicked = { navController.navigate(DriveMeScreen.Home.name) }
             )
-        }
-
-        composable(DriveMeScreen.Profile.name) {
-            // TODO: Profile screen
         }
     }
 }

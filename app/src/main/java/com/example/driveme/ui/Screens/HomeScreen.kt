@@ -45,8 +45,7 @@ fun HomeScreen(
         topBar = { DriveMeTopBar(title = "Home") },
         bottomBar = {
             DriveMeNavigationBar(
-                onRideViewNavClicked = onRideViewNavClicked,
-                onProfileNavClicked = onProfileNavClicked
+                onRideViewNavClicked = onRideViewNavClicked
             )
         }
     ) { paddingValues ->

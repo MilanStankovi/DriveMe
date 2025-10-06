@@ -26,4 +26,15 @@ class UserViewModel(
             }
         }
     }
+
+    fun createRidePoints(user: User) {
+        viewModelScope.launch {
+            try {
+                user.points += 70
+                repository.updateUser(user)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 }

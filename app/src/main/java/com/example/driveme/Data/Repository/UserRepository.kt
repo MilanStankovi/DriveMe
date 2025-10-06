@@ -12,4 +12,9 @@ class UserRepository(
     suspend fun getAllUsers(): List<User> {
         return dataSource.getAllUsers()
     }
+
+    suspend fun updateUser(user: User) {
+        dataSource.updateUser(user)
+    }
+
 }

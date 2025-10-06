@@ -9,17 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.ui.Modifier
 import com.example.driveme.ui.ViewModel.RideRequestViewModel
+import com.example.driveme.ui.ViewModel.UserViewModel
 import com.example.driveme.ui.theme.DriveMeTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         val viewModel: RideRequestViewModel by viewModels()
+        val userViewModel: UserViewModel by viewModels()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             DriveMeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    DriveMeApp(innerPadding,viewModel)
+                    DriveMeApp(innerPadding,viewModel,userViewModel = userViewModel)
                 }
             }
         }
