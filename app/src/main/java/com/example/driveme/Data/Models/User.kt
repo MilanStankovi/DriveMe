@@ -9,5 +9,6 @@ data class User(
     val photoUrl: String? = null,
     var points: Int = 0,
     var lat: Double? = null,
-    var lng: Double? = null
+    var lng: Double? = null,
+    var ride: Boolean = false
 )

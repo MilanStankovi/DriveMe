@@ -25,8 +25,9 @@ import com.example.driveme.ui.ViewModel.UserViewModel
 fun HomeScreen(
     modifier: Modifier = Modifier,
     onRideViewNavClicked: () -> Unit = {},
-    onButtonAddOrModRideClicked: () -> Unit = {},
-    onProfileNavClicked: () -> Unit = {},
+    onButtonAddClicked: () -> Unit = {},
+    onButtonEditClicked: () -> Unit = {},
+    onButtonDeleteClicked: () -> Unit = {},
     user: User,
     userViewModel: UserViewModel = UserViewModel()
 ) {
@@ -36,10 +37,7 @@ fun HomeScreen(
     // Pretvaramo StateFlow u Compose state
     val users by userViewModel.users.collectAsState()
 
-    // Učitavamo korisnike kada se ekran prvi put pojavi
-    LaunchedEffect(Unit) {
-        userViewModel.loadUsers()
-    }
+
 
     Scaffold(
         topBar = { DriveMeTopBar(title = "Home") },
@@ -74,7 +72,7 @@ fun HomeScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    RideButtons(onButtonAddOrModRideClicked)
+                    RideButtons(onButtonAddClicked,onButtonEditClicked,onButtonDeleteClicked )
                     PointsSection(user)
                 }
             } else {
@@ -88,7 +86,7 @@ fun HomeScreen(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        RideButtons(onButtonAddOrModRideClicked)
+                        RideButtons(onButtonAddClicked,onButtonEditClicked,onButtonDeleteClicked)
                     }
                     Column(
                         modifier = Modifier.weight(1f),
@@ -139,9 +137,11 @@ fun HomeScreen(
 }
 
 @Composable
-fun RideButtons(onButtonAddOrModRideClicked: () -> Unit) {
+fun RideButtons(onButtonAddClicked: () -> Unit = {},
+                onButtonEditClicked: () -> Unit = {},
+                onButtonDeleteClicked: () -> Unit = {}) {
     Button(
-        onClick = { onButtonAddOrModRideClicked() },
+        onClick = { onButtonAddClicked() },
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6495ED)),
         modifier = Modifier.fillMaxWidth()
@@ -152,7 +152,7 @@ fun RideButtons(onButtonAddOrModRideClicked: () -> Unit) {
     }
 
     Button(
-        onClick = { onButtonAddOrModRideClicked() },
+        onClick = { onButtonEditClicked() },
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6495ED)),
         modifier = Modifier.fillMaxWidth()
@@ -163,7 +163,7 @@ fun RideButtons(onButtonAddOrModRideClicked: () -> Unit) {
     }
 
     Button(
-        onClick = {},
+        onClick = {onButtonDeleteClicked()},
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6495ED)),
         modifier = Modifier.fillMaxWidth()

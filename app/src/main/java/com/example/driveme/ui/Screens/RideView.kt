@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.driveme.Data.Models.RideRequest
+import com.example.driveme.Data.Models.User
 import com.example.driveme.ui.ViewModel.RideRequestViewModel
 import com.example.driveme.ui.ViewModel.UserViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -50,11 +51,6 @@ fun RideViewScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 🔹 Učitavanje ride requestova i korisnika
-    LaunchedEffect(Unit) {
-        rideViewModel.loadRideRequests()
-        userViewModel.loadUsers()
-    }
 
     val rideRequests by rideViewModel.rides.collectAsState()
     val users by userViewModel.users.collectAsState()
@@ -84,8 +80,6 @@ fun RideViewScreen(
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                     if (location != null) {
                         currentLocation = LatLng(location.latitude, location.longitude)
-
-                        // 🔹 Ažuriranje lokacije trenutnog korisnika u Firestore
                         val loggedUser = users.firstOrNull()
                         loggedUser?.let {
                             scope.launch {
@@ -125,6 +119,13 @@ fun RideViewScreen(
         val c = 2 * atan2(sqrt(a), sqrt(1 - a))
         val distance = R * c
         return distance <= radiusKm
+    }
+
+    // 🔹 Funkcija za udaljenost u metrima
+    fun distanceInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+        val results = FloatArray(1)
+        Location.distanceBetween(lat1, lon1, lat2, lon2, results)
+        return results[0]
     }
 
     val filteredRequests = rideRequests.filter { ride ->
@@ -251,6 +252,34 @@ fun RideViewScreen(
                                     .padding(top = 8.dp)
                             )
                         }
+
+                        // 🔹 Dugme da prihvati vožnju (samo ako je unutar 10 metara)
+                        val loggedUser = users.firstOrNull()
+                        val canAccept = loggedUser != null &&
+                                ride.status == "open" &&
+                                currentLocation != null &&
+                                distanceInMeters(
+                                    currentLocation!!.latitude,
+                                    currentLocation!!.longitude,
+                                    ride.pickupLat,
+                                    ride.pickupLng
+                                ) <= 10 // max 10 metara
+
+                        Button(
+                            onClick = {
+                                if (loggedUser != null) {
+                                    rideViewModel.acceptRide(ride, loggedUser)
+                                    selectedRide = null
+                                }
+                            },
+                            enabled = canAccept,
+                            modifier = Modifier
+                                .align(Alignment.End)
+                                .padding(top = 8.dp)
+                        ) {
+                            Text("Prihvati vožnju")
+                        }
+
                         Button(
                             onClick = { selectedRide = null },
                             modifier = Modifier

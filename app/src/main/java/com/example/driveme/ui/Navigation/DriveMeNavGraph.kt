@@ -25,7 +25,9 @@ enum class DriveMeScreen {
     Ride,
     RideView,
     Login,
-    Register
+    Register,
+    EditRide,
+    DeleteRide
 }
 
 @Composable
@@ -83,7 +85,9 @@ fun DriveMeNavHost(
                 HomeScreen(
                     modifier,
                     onRideViewNavClicked = { navController.navigate(DriveMeScreen.RideView.name) },
-                    onButtonAddOrModRideClicked = { navController.navigate(DriveMeScreen.Ride.name) },
+                    onButtonAddClicked = { navController.navigate(DriveMeScreen.Ride.name) },
+                    onButtonEditClicked = { navController.navigate(DriveMeScreen.EditRide.name) },
+                    onButtonDeleteClicked = { navController.navigate(DriveMeScreen.DeleteRide.name) },
                     user = currentUser!!
                 )
             }
@@ -108,6 +112,28 @@ fun DriveMeNavHost(
                 modifier,
                 onHomeNavClicked = { navController.navigate(DriveMeScreen.Home.name) }
             )
+        }
+
+        composable(DriveMeScreen.EditRide.name) {
+            val currentUser by authViewModel.currentUser.collectAsState()
+            if(currentUser != null) {
+                EditRideScreen(
+                    user = currentUser!!,
+                    viewModel = viewModel,
+                    onBack = { navController.navigate(DriveMeScreen.Home.name) }
+                )
+            }
+        }
+
+        composable(DriveMeScreen.DeleteRide.name) {
+            val currentUser by authViewModel.currentUser.collectAsState()
+            if(currentUser != null) {
+                DeleteRideScreen(
+                    user = currentUser!!,
+                    viewModel = viewModel,
+                    onBack = { navController.navigate(DriveMeScreen.Home.name) }
+                )
+            }
         }
     }
 }

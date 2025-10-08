@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewModelScope
 import coil.compose.rememberAsyncImagePainter
 import com.example.driveme.Data.Models.RideRequest
 import com.example.driveme.Data.Models.User
@@ -35,6 +36,7 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -82,12 +84,12 @@ fun RideScreen(
                     destinationLat = endLocation!!.latitude,
                     destinationLng = endLocation!!.longitude,
                     takenBy = user.username,
-                    imageUrl = selectedImageUri?.toString(),
+                    selectedImageUri = selectedImageUri,
                     comment = comment,
                     viewModel = viewModel,
                     userViewModel = userViewModel,
                     user = user
-                    )
+                )
                     onSubmit()},
                     onBack = onBack)
                 DriveMeNavigationBar(onRideViewNavClicked = onBack)
@@ -301,9 +303,9 @@ fun submit(
     destinationLat: Double?,
     destinationLng: Double?,
     takenBy: String,
-    imageUrl: String?,
+    selectedImageUri: Uri?,
     comment: String?,
-    viewModel : RideRequestViewModel,
+    viewModel: RideRequestViewModel,
     userViewModel: UserViewModel,
     user: User
 ){
@@ -311,13 +313,13 @@ fun submit(
         userId = userId,
         pickupLat = pickupLat,
         pickupLng = pickupLng,
-        destinationLng = destinationLng,
         destinationLat = destinationLat,
+        destinationLng = destinationLng,
         takenBy = takenBy,
-        imageUrl = imageUrl,
         comment = comment
     )
-    viewModel.addRideRequest(ride)
+
+    viewModel.addRideRequest(ride, selectedImageUri)
     userViewModel.createRidePoints(user)
 }
 
