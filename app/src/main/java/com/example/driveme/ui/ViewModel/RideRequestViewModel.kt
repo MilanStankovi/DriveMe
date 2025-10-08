@@ -17,20 +17,11 @@ class RideRequestViewModel(
     private val _ride = MutableStateFlow<RideRequest?>(null)
     val ride: StateFlow<RideRequest?> = _ride
 
-    init {
-        viewModelScope.launch {
-            repository.observeAllRideRequests().collect { list ->
-                _rides.value = list
-            }
-        }
-    }
-
     fun loadRideRequests() {
         viewModelScope.launch {
             try {
-                repository.observeAllRideRequests().collect { list ->
-                    _rides.value = list
-                }
+                val result = repository.getAllRideRequests()
+                _rides.value = result
             } catch (e: Exception) {
 
             }

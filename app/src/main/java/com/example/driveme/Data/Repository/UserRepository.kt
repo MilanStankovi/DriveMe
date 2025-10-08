@@ -9,7 +9,9 @@ class UserRepository(
     private val dataSource: FirebaseUserDataSource = FirebaseUserDataSource()
 ) {
 
-    fun observeAllUsers() = dataSource.observeAllUsers()
+    suspend fun getAllUsers(): List<User> {
+        return dataSource.getAllUsers()
+    }
 
     suspend fun updateUser(user: User) {
         dataSource.updateUser(user)

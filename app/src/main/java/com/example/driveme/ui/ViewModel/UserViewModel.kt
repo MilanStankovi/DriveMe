@@ -6,7 +6,6 @@ import com.example.driveme.Data.Models.RideRequest
 import com.example.driveme.Data.Models.User
 import com.example.driveme.Data.Repository.RideRequestRepository
 import com.example.driveme.Data.Repository.UserRepository
-import com.google.firebase.Firebase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -17,14 +16,16 @@ class UserViewModel(
     private val _users = MutableStateFlow<List<User>>(emptyList())
     val users: StateFlow<List<User>> = _users
 
-    init {
+    fun loadUsers() {
         viewModelScope.launch {
-            repository.observeAllUsers().collect { list ->
-                _users.value = list
+            try {
+                val result = repository.getAllUsers()
+                _users.value = result
+            } catch (e: Exception) {
+
             }
         }
     }
-
 
     fun createRidePoints(user: User) {
         viewModelScope.launch {
@@ -39,7 +40,11 @@ class UserViewModel(
 
     fun updateUserLocation(uid: String, lat: Double, lng: Double) {
         viewModelScope.launch {
-            repository.updateUserLocation(uid, lat, lng)
+            try {
+                repository.updateUserLocation(uid, lat, lng)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
@@ -54,7 +59,4 @@ class UserViewModel(
             }
         }
     }
-
-
-
 }

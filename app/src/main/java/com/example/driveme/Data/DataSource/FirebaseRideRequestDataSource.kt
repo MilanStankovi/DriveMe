@@ -6,8 +6,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.StorageReference
-import kotlinx.coroutines.channels.awaitClose
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 class FirebaseRideRequestDataSource {
     private val db = Firebase.firestore
@@ -17,16 +15,9 @@ class FirebaseRideRequestDataSource {
         collection.add(ride).await()
     }
 
-    fun observeAllRideRequests() = callbackFlow<List<RideRequest>> {
-        val listener = collection.addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
-            }
-            val rides = snapshot?.documents?.mapNotNull { it.toObject(RideRequest::class.java) } ?: emptyList()
-            trySend(rides)
-        }
-        awaitClose { listener.remove() }
+    suspend fun getAllRideRequests(): List<RideRequest> {
+        val snapshot = collection.get().await()
+        return snapshot.mapNotNull { it.toObject(RideRequest::class.java) }
     }
 
     suspend fun getRideRequestById(id: String): RideRequest? {

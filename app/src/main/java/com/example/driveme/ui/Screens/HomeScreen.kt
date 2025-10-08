@@ -37,7 +37,10 @@ fun HomeScreen(
     // Pretvaramo StateFlow u Compose state
     val users by userViewModel.users.collectAsState()
 
-
+    // Učitavamo korisnike kada se ekran prvi put pojavi
+    LaunchedEffect(Unit) {
+        userViewModel.loadUsers()
+    }
 
     Scaffold(
         topBar = { DriveMeTopBar(title = "Home") },

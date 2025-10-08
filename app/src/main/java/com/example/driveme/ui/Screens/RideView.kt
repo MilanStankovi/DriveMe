@@ -51,6 +51,11 @@ fun RideViewScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
+    // 🔹 Učitavanje ride requestova i korisnika
+    LaunchedEffect(Unit) {
+        rideViewModel.loadRideRequests()
+        userViewModel.loadUsers()
+    }
 
     val rideRequests by rideViewModel.rides.collectAsState()
     val users by userViewModel.users.collectAsState()

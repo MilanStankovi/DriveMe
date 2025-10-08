@@ -12,7 +12,9 @@ class RideRequestRepository(
         dataSource.addRideRequestWithImage(ride, imageUri)
     }
 
-    fun observeAllRideRequests() = dataSource.observeAllRideRequests()
+    suspend fun getAllRideRequests(): List<RideRequest> {
+        return dataSource.getAllRideRequests()
+    }
 
     suspend fun getRideRequestById(id: String): RideRequest? {
         return dataSource.getRideRequestById(id)
