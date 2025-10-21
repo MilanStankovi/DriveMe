@@ -41,7 +41,7 @@ fun DriveMeNavHost(
     val authViewModel = remember {
         AuthViewModel(
             AuthRepository(
-                AuthDataSource(context) // ✅ sad prosleđujemo context
+                AuthDataSource(context)
             )
         )
     }
@@ -108,7 +108,9 @@ fun DriveMeNavHost(
         }
 
         composable(DriveMeScreen.RideView.name) {
+            val currentUser by authViewModel.currentUser.collectAsState()
             RideViewScreen(
+                currentUser!!,
                 modifier,
                 onHomeNavClicked = { navController.navigate(DriveMeScreen.Home.name) }
             )

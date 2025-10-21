@@ -34,4 +34,15 @@ class FirebaseUserDataSource {
         val doc = db.collection("users").document(uid).get().await()
         return doc.toObject(User::class.java)
     }
+
+    fun listenToUsers(onUsersChanged: (List<User>) -> Unit) {
+        collection.addSnapshotListener { snapshot, e ->
+            if (e != null || snapshot == null) {
+                return@addSnapshotListener
+            }
+            val users = snapshot.documents.mapNotNull { it.toObject(User::class.java) }
+            onUsersChanged(users)
+        }
+    }
+
 }

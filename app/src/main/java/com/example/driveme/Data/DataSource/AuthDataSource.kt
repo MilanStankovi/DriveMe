@@ -35,7 +35,7 @@ class AuthDataSource(private val context: Context) {
 
                 when {
                     imageBitmap != null -> {
-                        // 📸 Ako korisnik uslika sliku
+
                         val baos = ByteArrayOutputStream()
                         imageBitmap.compress(Bitmap.CompressFormat.JPEG, 90, baos)
                         val data = baos.toByteArray()
@@ -53,7 +53,7 @@ class AuthDataSource(private val context: Context) {
                     }
 
                     imageUri != null -> {
-                        // 📁 Ako korisnik izabere sliku iz galerije
+
                         ref.putFile(imageUri)
                             .addOnSuccessListener {
                                 ref.downloadUrl.addOnSuccessListener { uri ->
@@ -67,7 +67,7 @@ class AuthDataSource(private val context: Context) {
                     }
 
                     else -> {
-                        // 🧍 Ako korisnik ne doda sliku
+
                         val newUser = user.copy(uid = uid)
                         saveUserToFirestore(newUser, onResult)
                     }

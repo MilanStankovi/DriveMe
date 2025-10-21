@@ -27,7 +27,7 @@ class FirebaseRideRequestDataSource {
 
     suspend fun updateRideRequest(userId: String, updatedRide: RideRequest) {
         val snapshot = collection
-            .whereEqualTo("userId", userId)  // pretraži ride po userId
+            .whereEqualTo("userId", userId)
             .get()
             .await()
 
@@ -72,16 +72,13 @@ class FirebaseRideRequestDataSource {
 
 
     suspend fun acceptRide(ride: RideRequest, user: User) {
-        // Pretpostavljamo da RideRequest već ima ID u polju userId (ili možeš dodati posebno polje "id" za Firestore dokument)
-        // Ako nema, treba da se prvo doda prilikom kreiranja vožnje
         val updatedRide = ride.copy(
             status = "running",
             takenBy = user.fullName
         )
 
-        // Pronađi dokument u bazi koji odgovara ovom ride-u i setuj novi objekat
         val snapshot = collection
-            .whereEqualTo("userId", ride.userId) // ili koristi polje "id" ako ga imaš
+            .whereEqualTo("userId", ride.userId)
             .get()
             .await()
 

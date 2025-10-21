@@ -28,7 +28,7 @@ fun DeleteRideScreen(
 ) {
     val ride by viewModel.ride.collectAsState()
 
-    // Učitavanje ride-a po userId
+    // ucitavanje ride
     LaunchedEffect(user.uid) {
         viewModel.getRideByUser(user.uid)
     }
@@ -109,7 +109,7 @@ fun DeleteRideMap(startLocation: LatLng, endLocation: LatLng?) {
             .fillMaxWidth()
             .height(300.dp),
         cameraPositionState = cameraPositionState,
-        onMapClick = { } // onemogućeno menjanje markera
+        onMapClick = { }
     ) {
         Marker(state = MarkerState(position = startLocation), title = "Start")
         endLocation?.let { Marker(state = MarkerState(position = it), title = "Destination") }

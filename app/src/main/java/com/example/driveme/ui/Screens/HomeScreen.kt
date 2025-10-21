@@ -34,10 +34,9 @@ fun HomeScreen(
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
 
-    // Pretvaramo StateFlow u Compose state
     val users by userViewModel.users.collectAsState()
 
-    // Učitavamo korisnike kada se ekran prvi put pojavi
+    //ucitavanje korisnika pri pokretanju ekrana
     LaunchedEffect(Unit) {
         userViewModel.loadUsers()
     }
@@ -111,7 +110,7 @@ fun HomeScreen(
             )
 
             if (users.isEmpty()) {
-                // Loading indikator ako nema korisnika
+                // za prikaz onog kruga za ucitavanje ako nema ni jedan korisnik kreiran
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()

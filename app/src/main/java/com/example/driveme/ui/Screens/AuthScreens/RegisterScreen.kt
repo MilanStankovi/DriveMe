@@ -34,14 +34,14 @@ fun RegisterScreen(
     var fullName by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
 
-    // Može biti samo jedna slika — iz galerije ili kamerom
+    // Moze biti samo jedna slika — iz galerije ili kamerom
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var selectedImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
     val authState by viewModel.authState.collectAsState()
     val currentUser by viewModel.currentUser.collectAsState()
 
-    // 📁 Launcher za izbor slike iz galerije
+    // Launcher za izbor slike iz galerije
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -51,7 +51,7 @@ fun RegisterScreen(
         }
     }
 
-    // 📸 Launcher za kameru
+    // Launcher za kameru
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap: Bitmap? ->
@@ -61,7 +61,7 @@ fun RegisterScreen(
         }
     }
 
-    // 🪪 Launcher za runtime CAMERA permisiju
+    // Launcher za runtime CAMERA permisiju
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -136,7 +136,7 @@ fun RegisterScreen(
                 }
             }
 
-            // 🖼️ Prikaz slike ako postoji
+            //  Prikaz slike ako postoji
             when {
                 selectedImageUri != null -> {
                     Image(
@@ -173,7 +173,7 @@ fun RegisterScreen(
                         photoUrl = null
                     )
 
-                    // Prosleđuje se i URI i Bitmap
+                    // Prosledjuje se i URI i Bitmap
                     viewModel.register(email, password, user, selectedImageUri, selectedImageBitmap)
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -189,7 +189,7 @@ fun RegisterScreen(
         }
     }
 
-    // ✅ Kada je registracija uspešna
+    //  Kada je registracija uspesna
     LaunchedEffect(authState, currentUser) {
         if (authState is AuthState.Success && currentUser != null) {
             onAuthSuccess(currentUser!!)

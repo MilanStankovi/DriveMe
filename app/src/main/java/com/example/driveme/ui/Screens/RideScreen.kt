@@ -37,6 +37,8 @@ import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
 import kotlinx.coroutines.launch
+import android.location.Geocoder
+import java.util.Locale
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -51,20 +53,24 @@ fun RideScreen(
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val context = LocalContext.current
+    //googlov api za lokaciju
     val fusedLocationClient = remember { LocationServices.getFusedLocationProviderClient(context) }
 
+    //za ptrazenje permisije za lokaciju
     val locationPermissionState = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
     var startLocation by remember { mutableStateOf<LatLng?>(null) }
     var endLocation by remember { mutableStateOf<LatLng?>(null) }
     var comment by remember { mutableStateOf("") }
 
+
+    //trazi se od korisnika dozvola za lokaciju
     LaunchedEffect(Unit) {
         if (!locationPermissionState.status.isGranted) {
             locationPermissionState.launchPermissionRequest()
         }
     }
-
+    //preuzimanje lokacije
     LaunchedEffect(locationPermissionState.status.isGranted) {
         if (locationPermissionState.status.isGranted) {
             fusedLocationClient.lastLocation.addOnSuccessListener { location ->
@@ -163,11 +169,26 @@ fun LocationsRide(
     startLocation: LatLng,
     endLocation: LatLng?
 ) {
+    val context = LocalContext.current
+    var startAddress by remember { mutableStateOf("Ucitavam adresu...") }
+    var endAddress by remember { mutableStateOf("Nije odabrana destinacija") }
+
+    LaunchedEffect(startLocation) {
+        startAddress = getAddressFromLatLng(context, startLocation.latitude, startLocation.longitude)
+    }
+
+    LaunchedEffect(endLocation) {
+        endLocation?.let {
+            endAddress = getAddressFromLatLng(context, it.latitude, it.longitude)
+        }
+    }
+
     Column(modifier = Modifier.padding(16.dp)) {
-        Text("Start: ${startLocation.latitude}, ${startLocation.longitude}")
-        Text("Destination: ${endLocation?.latitude ?: "?"}, ${endLocation?.longitude ?: "?"}")
+        Text("Start: $startAddress")
+        Text("Destination: $endAddress")
     }
 }
+
 
 @Composable
 fun CommentTextField(comment: String, onCommentChange: (String) -> Unit) {
@@ -219,7 +240,7 @@ fun ImagePicker(onImageSelected: (Uri) -> Unit) {
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
 
-
+    //Provera dozvole za kameru
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
     //Za galeriju
@@ -251,6 +272,7 @@ fun ImagePicker(onImageSelected: (Uri) -> Unit) {
             put(MediaStore.Images.Media.DISPLAY_NAME, "ride_${System.currentTimeMillis()}.jpg")
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
         }
+            //pokazivac na lokaciju gde se cuva slika
         return context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
     }
 
@@ -321,5 +343,27 @@ fun submit(
 
     viewModel.addRideRequest(ride, selectedImageUri)
     userViewModel.createRidePoints(user)
+}
+
+
+fun getAddressFromLatLng(context: android.content.Context, lat: Double, lng: Double): String {
+    return try {
+        val geocoder = Geocoder(context, Locale.getDefault())
+        val addresses = geocoder.getFromLocation(lat, lng, 1)
+        if (!addresses.isNullOrEmpty()) {
+            val address = addresses[0]
+            listOfNotNull(
+                address.thoroughfare, // ulica
+                address.subThoroughfare, // broj
+                address.locality, // grad
+                address.countryName // drzava
+            ).joinToString(", ")
+        } else {
+            "Nepoznata lokacija"
+        }
+    } catch (e: Exception) {
+        e.printStackTrace()
+        "Greska pri ucitavanju adrese"
+    }
 }
 

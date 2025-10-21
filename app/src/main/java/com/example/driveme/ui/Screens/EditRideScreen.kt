@@ -44,12 +44,12 @@ fun EditRideScreen(
 
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
 
-    // Učitavanje ride-a po userId
+    // ucitava objekat ride
     LaunchedEffect(user.uid) {
         viewModel.getRideByUser(user.uid)
     }
 
-    // Popuni polja kada se ride učita
+    // popunjava polja za ride
     LaunchedEffect(ride) {
         ride?.let {
             comment = it.comment ?: ""

@@ -27,6 +27,18 @@ class UserViewModel(
         }
     }
 
+    fun acceptRidePoints(user: User) {
+        viewModelScope.launch {
+            try {
+                user.points += 45
+                repository.updateUser(user)
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+
     fun createRidePoints(user: User) {
         viewModelScope.launch {
             try {
@@ -59,4 +71,11 @@ class UserViewModel(
             }
         }
     }
+
+    fun startUserListener() {
+        repository.listenToUsers { updatedUsers ->
+            _users.value = updatedUsers
+        }
+    }
+
 }

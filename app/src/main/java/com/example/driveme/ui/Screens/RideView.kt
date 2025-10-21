@@ -38,29 +38,53 @@ import com.google.maps.android.compose.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.*
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+
+fun distanceInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
+    val results = FloatArray(1)
+    Location.distanceBetween(lat1, lon1, lat2, lon2, results)
+    return results[0]
+}
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @SuppressLint("MissingPermission")
 @Composable
 fun RideViewScreen(
+    currentUser: User,
     modifier: Modifier = Modifier,
     rideViewModel: RideRequestViewModel = viewModel(),
     userViewModel: UserViewModel = viewModel(),
     onHomeNavClicked: () -> Unit
 ) {
+    //Za notifikaciju
+    val notificationPermission = rememberPermissionState(Manifest.permission.POST_NOTIFICATIONS)
+
+    LaunchedEffect(Unit) {
+        if (!notificationPermission.status.isGranted) {
+            notificationPermission.launchPermissionRequest()
+        }
+    }
+
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 🔹 Učitavanje ride requestova i korisnika
+    // 🔹 Ucitavanje podataka i pracenje korisnika u realnom vremenu
     LaunchedEffect(Unit) {
         rideViewModel.loadRideRequests()
-        userViewModel.loadUsers()
+        userViewModel.startUserListener()
     }
 
     val rideRequests by rideViewModel.rides.collectAsState()
     val users by userViewModel.users.collectAsState()
 
-    // 🔹 Lokacija korisnika
+    // 🔹 Lokacija trenutnog korisnika
     var currentLocation by remember { mutableStateOf<LatLng?>(null) }
     val fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
     val locationPermission = rememberPermissionState(Manifest.permission.ACCESS_FINE_LOCATION)
@@ -78,26 +102,41 @@ fun RideViewScreen(
         }
     }
 
-    // 🔹 Periodično ažuriranje i snimanje korisnikove lokacije
-    LaunchedEffect(currentLocation) {
+    val notifiedRides = remember { mutableStateListOf<String>() }
+
+    // 🔹 Periodicno azuriranje lokacije
+    LaunchedEffect(currentUser.uid, locationPermission.status.isGranted) {
         if (locationPermission.status.isGranted) {
             while (true) {
                 fusedLocationClient.lastLocation.addOnSuccessListener { location ->
                     if (location != null) {
                         currentLocation = LatLng(location.latitude, location.longitude)
-                        val loggedUser = users.firstOrNull()
-                        loggedUser?.let {
-                            scope.launch {
-                                userViewModel.updateUserLocation(
-                                    it.uid,
+                        scope.launch {
+                            userViewModel.updateUserLocation(
+                                currentUser.uid,
+                                location.latitude,
+                                location.longitude
+                            )
+                            rideViewModel.rides.value.forEach { ride ->
+                                val distance = distanceInMeters(
                                     location.latitude,
-                                    location.longitude
+                                    location.longitude,
+                                    ride.pickupLat,
+                                    ride.pickupLng
                                 )
+                                if (ride.status == "open" && distance <= 50 && distance <= 50 && !notifiedRides.contains(ride.userId)) {
+                                    showNearbyNotification(
+                                        context.applicationContext,
+                                        "Objekat je u blizini!",
+                                        "Nalaziš se blizu ride lokacije – možeš da ga prihvatiš."
+                                    )
+                                    notifiedRides.add(ride.userId)
+                                }
                             }
                         }
                     }
                 }
-                delay(10_000) // svakih 10 sekundi
+                delay(10_000)
             }
         }
     }
@@ -114,7 +153,6 @@ fun RideViewScreen(
         }
     }
 
-    // 🔹 Haversine formula za filtriranje po udaljenosti
     fun withinRadius(lat1: Double, lon1: Double, lat2: Double, lon2: Double, radiusKm: Double): Boolean {
         val R = 6371
         val dLat = Math.toRadians(lat2 - lat1)
@@ -126,12 +164,6 @@ fun RideViewScreen(
         return distance <= radiusKm
     }
 
-    // 🔹 Funkcija za udaljenost u metrima
-    fun distanceInMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Float {
-        val results = FloatArray(1)
-        Location.distanceBetween(lat1, lon1, lat2, lon2, results)
-        return results[0]
-    }
 
     val filteredRequests = rideRequests.filter { ride ->
         val matchesStatus = if (statusFilter.isBlank()) true else ride.status.equals(statusFilter, ignoreCase = true)
@@ -150,7 +182,7 @@ fun RideViewScreen(
         matchesStatus && matchesRadius
     }
 
-    // 🔹 UI
+    // UI
     Scaffold(
         topBar = {
             TopAppBar(
@@ -168,13 +200,12 @@ fun RideViewScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // 🔹 Google mapa
             GoogleMap(
                 modifier = Modifier.fillMaxSize(),
                 cameraPositionState = cameraPositionState,
                 properties = MapProperties(isMyLocationEnabled = locationPermission.status.isGranted)
             ) {
-                // 🔹 Ride request markeri (crveni)
+                // Ride request markeri (crveni)
                 filteredRequests.forEach { ride ->
                     val pos = LatLng(ride.pickupLat, ride.pickupLng)
                     Marker(
@@ -194,9 +225,8 @@ fun RideViewScreen(
                     )
                 }
 
-                // 🔹 Korisnici (plavi markeri)
-                val loggedUser = users.firstOrNull()
-                users.filter { it.uid != loggedUser?.uid }.forEach { user ->
+                // 🔹 Ostali korisnici (plavi markeri u realnom vremenu)
+                users.filter { it.uid != currentUser.uid }.forEach { user ->
                     if (user.lat != null && user.lng != null) {
                         Marker(
                             state = MarkerState(position = LatLng(user.lat!!, user.lng!!)),
@@ -221,7 +251,7 @@ fun RideViewScreen(
                 OutlinedTextField(
                     value = statusFilter,
                     onValueChange = { statusFilter = it },
-                    label = { Text("Status (open, taken...)") },
+                    label = { Text("Status (open, running...)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
@@ -233,8 +263,18 @@ fun RideViewScreen(
                 )
             }
 
-            // 🔹 Info kartica za ride
+            // Info kartica za ride
             selectedRide?.let { ride ->
+                val context = LocalContext.current
+                var destinationAddress by remember { mutableStateOf("Ucitavam adresu...") }
+
+                LaunchedEffect(ride.destinationLat, ride.destinationLng) {
+                    if (ride.destinationLat != null && ride.destinationLng != null) {
+                        destinationAddress = getAddressFromLatLng(context, ride.destinationLat!!, ride.destinationLng!!)
+                    } else {
+                        destinationAddress = "Nema destinacije"
+                    }
+                }
                 Card(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
@@ -245,7 +285,7 @@ fun RideViewScreen(
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Text("Status: ${ride.status}", style = MaterialTheme.typography.titleMedium)
-                        Text("Destination: ${ride.destinationLat}, ${ride.destinationLng}")
+                        Text("Destinacija: $destinationAddress")
                         ride.comment?.let { Text("Comment: $it") }
                         ride.imageUrl?.let {
                             Image(
@@ -258,31 +298,27 @@ fun RideViewScreen(
                             )
                         }
 
-                        // 🔹 Dugme da prihvati vožnju (samo ako je unutar 10 metara)
-                        val loggedUser = users.firstOrNull()
-                        val canAccept = loggedUser != null &&
-                                ride.status == "open" &&
+                        val canAccept = ride.status == "open" &&
                                 currentLocation != null &&
                                 distanceInMeters(
                                     currentLocation!!.latitude,
                                     currentLocation!!.longitude,
                                     ride.pickupLat,
                                     ride.pickupLng
-                                ) <= 10 // max 10 metara
+                                ) <= 10
 
                         Button(
                             onClick = {
-                                if (loggedUser != null) {
-                                    rideViewModel.acceptRide(ride, loggedUser)
-                                    selectedRide = null
-                                }
+                                rideViewModel.acceptRide(ride, currentUser)
+                                userViewModel.acceptRidePoints(currentUser)
+                                selectedRide = null
                             },
                             enabled = canAccept,
                             modifier = Modifier
                                 .align(Alignment.End)
                                 .padding(top = 8.dp)
                         ) {
-                            Text("Prihvati vožnju")
+                            Text("Accept")
                         }
 
                         Button(
@@ -299,3 +335,38 @@ fun RideViewScreen(
         }
     }
 }
+
+fun showNearbyNotification(context: Context, title: String, message: String) {
+    val appContext = context.applicationContext
+    val channelId = "ride_nearby_channel"
+    val notificationId = (0..9999).random()
+
+    val notificationManager =
+        appContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+    // Proveri da li kanal vec postoji
+    if (notificationManager.getNotificationChannel(channelId) == null) {
+        val channel = NotificationChannel(
+            channelId,
+            "Nearby Ride Notifications",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "Notifikacije kada je objekat u blizini"
+        }
+        notificationManager.createNotificationChannel(channel)
+    }
+
+    val notification = NotificationCompat.Builder(appContext, channelId)
+        .setSmallIcon(android.R.drawable.ic_dialog_info)
+        .setContentTitle(title)
+        .setContentText(message)
+        .setPriority(NotificationCompat.PRIORITY_HIGH)
+        .setAutoCancel(true)
+        .build()
+
+    with(NotificationManagerCompat.from(appContext)) {
+        notify(notificationId, notification)
+    }
+}
+
+

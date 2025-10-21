@@ -25,4 +25,8 @@ class UserRepository(
         return dataSource.getUserById(uid)
     }
 
+    fun listenToUsers(onUsersChanged: (List<User>) -> Unit) {
+        dataSource.listenToUsers(onUsersChanged)
+    }
+
 }
